@@ -10,3 +10,4 @@ SOURCES += main.cpp \
     udialog.cpp
 HEADERS += udialog.h
 FORMS += udialog.ui
+RESOURCES += UrbGet.qrc

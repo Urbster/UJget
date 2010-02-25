@@ -5,25 +5,40 @@ UDialog::UDialog(QWidget *parent)
     : QDialog(parent), ui(new Ui::UDialogClass)
 {
     ui->setupUi(this);
+    trayIcon = new QSystemTrayIcon(this->windowIcon(), this);
+
     http = new QHttp(this);
     connect(ui->GetBtn,SIGNAL(clicked()),this,SLOT(onGetBtnClicked()));
     connect(http,SIGNAL(done(bool)),this,SLOT(downloadFinished(bool)));
     connect(http,SIGNAL(dataReadProgress(int,int)), this, SLOT(downloadProgress(int,int)));
     connect(ui->CancelBtn,SIGNAL(clicked()),this,SLOT(onCancelBtnClicked()));
     connect(ui->FindBtn,SIGNAL(clicked()),this,SLOT(onFindBtnClicked()));
+    connect(ui->MinimizeBtn,SIGNAL(clicked()),this,SLOT(onMinimize()));
+    connect(trayIcon,SIGNAL(activated(QSystemTrayIcon::ActivationReason)),this,SLOT(trayActivated(QSystemTrayIcon::ActivationReason)));
+
     cancel = false;
     next = false;
-    //ui->progressBar->setValue(0);
-    //ui->CurrentFile->setText("");
-    //ui->CurrentFolder->setText("");
+    menu = new QMenu(this);
+    menu->addAction("Maximize", this, SLOT(onMaximize()));
+    menu->addAction("Cancel", this, SLOT(onCancelBtnClicked()));
+    menu->addAction("Quit", this, SLOT(close()));
+    trayIcon->setContextMenu(menu);
+
     ui->LoadPics->setText("");
     ui->LoadMangas->setText("");
+    ui->StatusLabel->setText("");
     dir = new QDir("");
     ui->tableWidget->insertColumn(0);
     ui->tableWidget->insertColumn(1);
     ui->tableWidget->insertColumn(2);
     ui->tableWidget->setHorizontalHeaderLabels(QStringList()<<"MNumber"<<"Page"<<"Progress");
     ui->DirEdit->setText(dir->absolutePath());
+}
+
+void UDialog::trayActivated(QSystemTrayIcon::ActivationReason reason)
+{
+    if(reason == QSystemTrayIcon::DoubleClick)
+        onMaximize();
 }
 
 UDialog::~UDialog()
@@ -34,6 +49,17 @@ UDialog::~UDialog()
 void UDialog::UpdateList(QString File, QString Folder)
 {
 
+}
+void UDialog::onMaximize()
+{
+    trayIcon->setVisible(false);
+    this->show();
+}
+void UDialog::onMinimize()
+{
+
+    trayIcon->setVisible(true);
+    this->hide();
 }
 
 void UDialog::onFindBtnClicked()
@@ -66,7 +92,8 @@ void UDialog::downloadFinished(bool error)
     loop.quit();
 }
 void UDialog::onGetBtnClicked()
-{
+{    
+    ui->StatusLabel->setText("downloading");
     QString Url = ui->UrlEdit->text();
     QStringList SubFolders;
     QString Host;
@@ -121,9 +148,12 @@ void UDialog::onGetBtnClicked()
             while(CurrentFolder.length() < folderLength)
                     CurrentFolder = "0" + CurrentFolder;
             next = false;
-            for(int FileIndex = 1; FileIndex <= 99 && !cancel && !next; FileIndex++)
+            int FileIndex  = 1;
+            for(; FileIndex <= 99 && !cancel && !next; FileIndex++)
             {
-                //ui->progressBar->setValue(0);                
+                if(trayIcon->isVisible())
+                    trayIcon->setToolTip("Loading Page " + QString::number(FileIndex-1) + " of Manga" + QString::number(FolderNumber));
+                //ui->progressBar->setValue(0);
                 CurrentFile = QString::number(FileIndex);
                 while(CurrentFile.length() < fileLength)
                     CurrentFile = "0" + CurrentFile;
@@ -193,6 +223,7 @@ void UDialog::onGetBtnClicked()
                         ui->tableWidget->setItem(ui->tableWidget->rowCount()-1,2,Item);
                         ui->LoadPics->setText(QString::number(PageCount));
                         PageCount++;
+
                     }
                     else
                     {
@@ -221,6 +252,13 @@ void UDialog::onGetBtnClicked()
 
             }
             ui->LoadMangas->setText(QString::number(MangaCount));
+            if(trayIcon->isVisible())
+            {
+                trayIcon->showMessage(("Manga"+QString::number(FolderNumber)+" Finished"),
+                                      (QString::number(FileIndex-1) + " Pages succesfully loaded"),
+                                       QSystemTrayIcon::Information,
+                                       5000);
+            }
             MangaCount++;
             if(file->exists())
                 file->remove();
@@ -229,5 +267,13 @@ void UDialog::onGetBtnClicked()
         }
 
     }
-    cancel = false;
+    if(trayIcon->isVisible())
+        trayIcon->showMessage(("Download finished"),
+                          (QString::number(MangaCount) + " Mangas loaded\n" +
+                           QString::number(PageCount) + " Pages"),
+                           QSystemTrayIcon::Information,
+                           5000);
+
+    cancel = false;    
+    ui->StatusLabel->setText("stopped");
 }

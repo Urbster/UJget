@@ -7,6 +7,8 @@
 #include <QEventLoop>
 #include <QDir>
 #include <QFileDialog>
+#include <QSystemTrayIcon>
+#include <QMenu>
 
 
 namespace Ui
@@ -29,6 +31,8 @@ private:
     QEventLoop loop;
     QDir* dir;
     QFileDialog* dialog;
+    QSystemTrayIcon* trayIcon;
+    QMenu* menu;
     bool cancel;
     bool next;
     void UpdateList(QString File, QString Folder);
@@ -39,6 +43,9 @@ private slots:
     void downloadProgress(int,int);
     void onCancelBtnClicked();
     void onFindBtnClicked();
+    void onMinimize();
+    void onMaximize();
+    void trayActivated(QSystemTrayIcon::ActivationReason);
 };
 
 #endif // UDIALOG_H
