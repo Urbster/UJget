@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QFileDialog>
 
+
 namespace Ui
 {
     class UDialogClass;
@@ -30,6 +31,7 @@ private:
     QFileDialog* dialog;
     bool cancel;
     bool next;
+    void UpdateList(QString File, QString Folder);
 
 private slots:
     void onGetBtnClicked();
